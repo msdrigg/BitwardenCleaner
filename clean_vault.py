@@ -32,11 +32,18 @@ def clean_url(url):
 
 
 def split_conflicts(df: pd.DataFrame, unique_columns_and: List[List[str]]):
-    conflict_indices = df.duplicated(subset=unique_columns_and[0], keep=False)
+    conflict_list = []
+    for idx in range(0, len(unique_columns_and)):
+        indexed_cols = unique_columns_and[idx]
+        conflict_indices = df.duplicated(subset=indexed_cols, keep=False)
+        conflict_indices = conflict_indices & ~(
+            df[indexed_cols].isnull() | (df[indexed_cols] == "")
+        ).all(axis="columns")
+        conflict_list.append(conflict_indices)
+
+    conflict_indices_total = conflict_list[0]
     for idx in range(1, len(unique_columns_and)):
-        conflict_indices = conflict_indices & df.duplicated(
-            subset=unique_columns_and[idx], keep=False
-        )
+        conflict_indices_total = conflict_indices_total | conflict_list[idx]
 
     return df[~conflict_indices], df[conflict_indices]
 
